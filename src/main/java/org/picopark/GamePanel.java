@@ -214,7 +214,7 @@ public class GamePanel extends JPanel{
         tilesEvents.draw(g2d, (int)cameraX, (int)cameraY, this.connection.getCurrentWorld());
 
         // Dibujar plataformas móviles
-        for (org.connection.PlatformData platform : this.connection.getPlatforms().values()) {
+        for (org.connection.PlatformData platform : this.connection.getPlatforms()) {
             float screenX = platform.x - cameraX;
             float screenY = platform.y - cameraY;
 

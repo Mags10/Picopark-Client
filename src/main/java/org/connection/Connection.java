@@ -357,8 +357,8 @@ public class Connection extends WebSocketClient {
         return rooms;
     }
 
-    public Map<String, PlatformData> getPlatforms() {
-        return platforms;
+    public List<PlatformData> getPlatforms() {
+        return new ArrayList<>(platforms.values());
     }
     
 
