@@ -213,6 +213,41 @@ public class GamePanel extends JPanel{
 
         tilesEvents.draw(g2d, (int)cameraX, (int)cameraY, this.connection.getCurrentWorld());
 
+        // Dibujar plataformas móviles
+        for (org.connection.PlatformData platform : this.connection.getPlatforms()) {
+            float screenX = platform.x - cameraX;
+            float screenY = platform.y - cameraY;
+
+            // Verificar si está en viewport
+            if (platform.x + platform.width > cameraX &&
+                platform.x - platform.width < cameraX + widthScreen &&
+                platform.y + platform.height > cameraY &&
+                platform.y - platform.height < cameraY + heightScreen) {
+                
+                // Dibujar plataforma (rectángulo de color según tipo)
+                Color platformColor = new Color(100, 150, 255, 200); // Azul semi-transparente
+                g2d.setColor(platformColor);
+                g2d.fillRect((int)screenX, (int)screenY, (int)platform.width, (int)platform.height);
+                
+                // Borde para mejor visibilidad
+                g2d.setColor(Color.BLUE);
+                g2d.setStroke(new BasicStroke(2));
+                g2d.drawRect((int)screenX, (int)screenY, (int)platform.width, (int)platform.height);
+                
+                // Dibujar contador de jugadores necesarios al centro
+                String counterText = String.valueOf(Math.max(0, platform.playersNeeded));
+                Font counterFont = new Font("Arial", Font.BOLD, 20);
+                FontMetrics fm = g2d.getFontMetrics(counterFont);
+                
+                int textX = (int)(screenX + (platform.width - fm.stringWidth(counterText)) / 2);
+                int textY = (int)(screenY + ((platform.height - fm.getHeight()) / 2) + fm.getAscent());
+                
+                // Sombra del texto para mejor legibilidad
+                g2d.setColor(new Color(0, 0, 0, 150));
+                g2d.drawString(counterText, textX + 1, textY + 1);
+            }
+        }
+
         for (PlayerData otherPlayers : this.connection.getPlayers()){
             if(!otherPlayers.isVisible) continue;
             BufferedImage sprite = otherPlayers.getDirectionImage();

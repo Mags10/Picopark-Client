@@ -25,6 +25,7 @@ public class Connection extends WebSocketClient {
     private String username;
     private String currentRoom;
     private Map<String, PlayerData> players = new HashMap<>();
+    private Map<String, PlatformData> platforms = new HashMap<>(); // Plataformas móviles
     private int[][] currentWorld;
     private List<RoomInfo> rooms = new ArrayList<>();
 
@@ -237,6 +238,35 @@ public class Connection extends WebSocketClient {
             }
         });
 
+        // Actualizar plataformas
+        if (data.has("platforms")) {
+            platforms.clear();
+            data.getAsJsonArray("platforms").forEach(p -> {
+                JsonObject platformObj = p.getAsJsonObject();
+                PlatformData platform = new PlatformData(
+                        platformObj.get("id").getAsString(),
+                        platformObj.get("x").getAsFloat(),
+                        platformObj.get("y").getAsFloat(),
+                        platformObj.get("width").getAsFloat(),
+                        platformObj.get("height").getAsFloat(),
+                        platformObj.get("type").getAsInt(),
+                        platformObj.get("direction").getAsInt(),
+                        platformObj.get("isMoving").getAsBoolean()
+                );
+                // Asignar datos del contador
+                if (platformObj.has("playersOnPlatform")) {
+                    platform.playersOnPlatform = platformObj.get("playersOnPlatform").getAsInt();
+                }
+                if (platformObj.has("requiredPlayers")) {
+                    platform.requiredPlayers = platformObj.get("requiredPlayers").getAsInt();
+                }
+                if (platformObj.has("playersNeeded")) {
+                    platform.playersNeeded = platformObj.get("playersNeeded").getAsInt();
+                }
+                platforms.put(platform.id, platform);
+            });
+        }
+
         JPanel panel  = navigationManager.getPanel("gamePanel");
         if(panel instanceof GamePanel) {
             players.values().forEach(PlayerData::updateSprite);
@@ -327,8 +357,17 @@ public class Connection extends WebSocketClient {
         return rooms;
     }
 
+    public List<PlatformData> getPlatforms() {
+        return new ArrayList<>(platforms.values());
+    }
+    
+
+    public boolean isConnected() {
+        return isOpen();
+    }
 
     public void authenticate(String username, String password) {
+        System.out.println("Enviando autenticación para usuario: " + username);
         Map<String, String> data = new HashMap<>();
         data.put("username", username);
         data.put("password", password);
