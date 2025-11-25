@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class TilesEvents {
-    private final int maxTiles = 15;
+    private final int maxTiles = 50;
     private BufferedImage[] tiles = new BufferedImage[maxTiles];
 
     private final GamePanel gp;
@@ -36,21 +36,34 @@ public class TilesEvents {
             this.tiles[12]  = ImageIO.read((Objects.requireNonNull(this.getClass().getResourceAsStream("/assets-tiles/PuertaAbierta1.png"))));
             this.tiles[13] = ImageIO.read((Objects.requireNonNull(this.getClass().getResourceAsStream("/assets-tiles/PuertaAbierta3.png"))));
             this.tiles[14] = ImageIO.read((Objects.requireNonNull(this.getClass().getResourceAsStream("/assets-tiles/PuertaAbierta4.png"))));
+            // Nuevos tiles: 31-39 como suelo (usando pasto.png)
+            this.tiles[31] = ImageIO.read((Objects.requireNonNull(this.getClass().getResourceAsStream("/assets-tiles/pasto.png"))));
+            // Para 32-39, usar el mismo si no hay imágenes específicas
+            for(int i = 32; i <= 39; i++) {
+                this.tiles[i] = this.tiles[31];
+            }
         } catch(IOException e){
             e.printStackTrace();
         }
     }
 
     public void draw(Graphics2D g, int cameraX, int cameraY, int[][]codeMapsTiles){
+        if (codeMapsTiles == null || codeMapsTiles.length == 0) return;
+        
+        int maxRen = codeMapsTiles.length;
+        int maxCol = codeMapsTiles[0].length;
         int ren = 0, col = 0;
         int screenX, screenY;
         int worldX, worldY;
         int indexTile;
 
-        while(ren < gp.getMaxRenWorld() && col < gp.getMaxColWorld()){
+        while(ren < maxRen && col < maxCol){
             indexTile = codeMapsTiles[ren][col];
 
-            if(indexTile != 0) {
+            // NO renderizar tiles 31-39 (son plataformas dinámicas, no tiles estáticos)
+            // tampoco 30 (destino invisible)
+            if(indexTile != 0 && indexTile != 30 && indexTile != 40 && 
+               !(indexTile >= 31 && indexTile <= 39)) {
                 worldX = col * gp.getSizeTile();
                 worldY = ren * gp.getSizeTile();
 
@@ -69,7 +82,7 @@ public class TilesEvents {
             }
 
             col++;
-            if(col == gp.getMaxColWorld()){
+            if(col == maxCol){
                 col = 0;
                 ren++;
             }
