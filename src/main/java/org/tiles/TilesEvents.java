@@ -48,6 +48,10 @@ public class TilesEvents {
     }
 
     public void draw(Graphics2D g, int cameraX, int cameraY, int[][]codeMapsTiles){
+        draw(g, cameraX, cameraY, codeMapsTiles, false, false, false);
+    }
+
+    public void draw(Graphics2D g, int cameraX, int cameraY, int[][]codeMapsTiles, boolean requiresKey, boolean playerHasKey, boolean doorOpen){
         if (codeMapsTiles == null || codeMapsTiles.length == 0) return;
         
         int maxRen = codeMapsTiles.length;
@@ -61,9 +65,17 @@ public class TilesEvents {
             indexTile = codeMapsTiles[ren][col];
 
             // NO renderizar tiles 31-39 (son plataformas dinámicas, no tiles estáticos)
-            // tampoco 30 (destino invisible)
-            if(indexTile != 0 && indexTile != 30 && indexTile != 40 && 
+            // tampoco 30 (destino invisible) ni 50 (llave)
+            if(indexTile != 0 && indexTile != 30 && indexTile != 40 && indexTile != 50 &&
                !(indexTile >= 31 && indexTile <= 39)) {
+                
+                // Si es una puerta (12-14) y el nivel requiere llave pero la puerta no está abierta,
+                // mostrar puerta cerrada (8-11)
+                int actualTile = indexTile;
+                if (requiresKey && !doorOpen && indexTile >= 12 && indexTile <= 14) {
+                    actualTile = indexTile - 4; // 12->8, 13->9, 14->10
+                }
+                
                 worldX = col * gp.getSizeTile();
                 worldY = ren * gp.getSizeTile();
 
@@ -76,7 +88,7 @@ public class TilesEvents {
                     worldY + gp.getSizeTile() > cameraY &&
                     worldY - gp.getSizeTile() < cameraY + gp.getHeightScreen()
                 ) {
-                    g.drawImage(tiles[indexTile], screenX, screenY, gp.getSizeTile(),
+                    g.drawImage(tiles[actualTile], screenX, screenY, gp.getSizeTile(),
                             gp.getSizeTile(), null);
                 }
             }

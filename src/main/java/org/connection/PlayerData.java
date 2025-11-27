@@ -17,10 +17,16 @@ public class PlayerData {
     String username;
     String direction = "stop";
     public boolean isVisible = true;
+    public boolean hasKey = false;
     float x;
     float y;
     int indexSprite = 1;
 
+    // Client-side prediction fields
+    public boolean isLocal = false;
+    float predictedX;
+    float predictedY;
+    String predictedDirection = "stop";
 
     private long lastSpriteUpdate = 0; // última vez que cambió el sprite
     private long spriteDelay = 200; // tiempo en ms entre cambios de sprite
@@ -30,13 +36,15 @@ public class PlayerData {
         this.username = username;
         this.x = x;
         this.y = y;
+        this.predictedX = x;
+        this.predictedY = y;
         this.getSpritesImages();
     }
 
     public String getUsername(){return this.username;}
 
-    public float getWorldX(){return this.x;}
-    public float getWorldY(){return this.y;}
+    public float getWorldX(){return this.isLocal ? this.predictedX : this.x;}
+    public float getWorldY(){return this.isLocal ? this.predictedY : this.y;}
 
     public void getSpritesImages(){
         try{
@@ -60,7 +68,8 @@ public class PlayerData {
     }
 
     public BufferedImage getDirectionImage() {
-        return switch (direction) {
+        String dir = this.isLocal ? this.predictedDirection : this.direction;
+        return switch (dir) {
             case "left" -> switch (this.indexSprite){ case 1 -> spriteLeftFirst; case 2 ->spriteLeftSecond;
                 default -> throw new IllegalStateException("Unexpected value: " + this.indexSprite);
             };

@@ -26,6 +26,9 @@ public class Connection extends WebSocketClient {
     private String currentRoom;
     private Map<String, PlayerData> players = new HashMap<>();
     private Map<String, PlatformData> platforms = new HashMap<>(); // Plataformas móviles
+    private KeyData key = null; // Llave del nivel
+    private boolean requiresKey = false; // Si el nivel requiere llave para ganar
+    private boolean doorOpen = false; // Si la puerta está abierta
     private int[][] currentWorld;
     private List<RoomInfo> rooms = new ArrayList<>();
 
@@ -97,11 +100,25 @@ public class Connection extends WebSocketClient {
 
     private void handleGameWin() {
         JPanel panel  = navigationManager.getPanel("gamePanel");
-        if(panel instanceof GamePanel)
+        if(panel instanceof GamePanel) {
             ((GamePanel) panel).gameWin();
+            panel.repaint(); // Forzar repaint para mostrar la pantalla de ganar
+        }
     }
 
     private void handleRestartGame() {
+        // Resetear estado local del cliente
+        platforms.clear();
+        key = null;
+        requiresKey = false;
+        doorOpen = false;
+        
+        // Resetear visibilidad de jugadores
+        for (PlayerData player : players.values()) {
+            player.isVisible = true;
+            player.hasKey = false;
+        }
+        
         JPanel panel  = navigationManager.getPanel("gamePanel");
         if(panel instanceof GamePanel)
             ((GamePanel) panel).restartGame();
@@ -184,6 +201,9 @@ public class Connection extends WebSocketClient {
                     playerObj.get("y").getAsFloat()
             );
             players.put(player.id, player);
+        if (player.id.equals(this.userId)) {
+            player.isLocal = true;
+        }
         });
         this.navigationManager.navigateTo("gamePanel", "Picopark - " + roomName);
 
@@ -235,6 +255,15 @@ public class Connection extends WebSocketClient {
                 player.y = playerObj.get("y").getAsFloat();
                 player.direction = playerObj.get("direction").getAsString();
                 player.isVisible = playerObj.get("isVisible").getAsBoolean();
+                if (playerObj.has("hasKey")) {
+                    player.hasKey = playerObj.get("hasKey").getAsBoolean();
+                }
+                // Sync predicted for local player
+                if (player.isLocal) {
+                    player.predictedX = player.x;
+                    player.predictedY = player.y;
+                    player.predictedDirection = player.direction;
+                }
             }
         });
 
@@ -265,6 +294,37 @@ public class Connection extends WebSocketClient {
                 }
                 platforms.put(platform.id, platform);
             });
+        }
+
+        // Actualizar llave
+        if (data.has("key")) {
+            JsonObject keyObj = data.getAsJsonObject("key");
+            key = new KeyData(
+                    keyObj.get("x").getAsFloat(),
+                    keyObj.get("y").getAsFloat(),
+                    keyObj.get("isCollected").getAsBoolean(),
+                    keyObj.has("carriedByPlayerId") && !keyObj.get("carriedByPlayerId").isJsonNull() ?
+                        keyObj.get("carriedByPlayerId").getAsString() : null
+            );
+            // Actualizar propiedades de animación
+            if (keyObj.has("floatOffset")) {
+                key.floatOffset = keyObj.get("floatOffset").getAsFloat();
+            }
+            if (keyObj.has("isOpeningDoor")) {
+                key.isOpeningDoor = keyObj.get("isOpeningDoor").getAsBoolean();
+            }
+        } else {
+            key = null;
+        }
+
+        // Actualizar si el nivel requiere llave
+        if (data.has("requiresKey")) {
+            requiresKey = data.get("requiresKey").getAsBoolean();
+        }
+        
+        // Actualizar estado de la puerta
+        if (data.has("doorOpen")) {
+            doorOpen = data.get("doorOpen").getAsBoolean();
         }
 
         JPanel panel  = navigationManager.getPanel("gamePanel");
@@ -360,7 +420,18 @@ public class Connection extends WebSocketClient {
     public List<PlatformData> getPlatforms() {
         return new ArrayList<>(platforms.values());
     }
+
+    public KeyData getKey() {
+        return key;
+    }
+
+    public boolean requiresKey() {
+        return requiresKey;
+    }
     
+    public boolean isDoorOpen() {
+        return doorOpen;
+    }
 
     public boolean isConnected() {
         return isOpen();
@@ -385,6 +456,26 @@ public class Connection extends WebSocketClient {
         Map<String, String> data = new HashMap<>();
         data.put("direction", direction);
         sendMessage("move", data);
+    }
+
+    public void predictMove(String direction) {
+        PlayerData player = players.get(this.userId);
+        if (player != null) {
+            float speed = 2.0f; // Ajustar según la velocidad del servidor
+            switch (direction) {
+                case "left":
+                    player.predictedX -= speed;
+                    player.predictedDirection = "left";
+                    break;
+                case "right":
+                    player.predictedX += speed;
+                    player.predictedDirection = "right";
+                    break;
+                case "stop":
+                    player.predictedDirection = "stop";
+                    break;
+            }
+        }
     }
 
     public void jump() {
