@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class Connection extends WebSocketClient {
@@ -24,8 +25,8 @@ public class Connection extends WebSocketClient {
     private String userId;
     private String username;
     private String currentRoom;
-    private Map<String, PlayerData> players = new HashMap<>();
-    private Map<String, PlatformData> platforms = new HashMap<>(); // Plataformas móviles
+    private Map<String, PlayerData> players = new ConcurrentHashMap<>();
+    private Map<String, PlatformData> platforms = new ConcurrentHashMap<>(); // Plataformas móviles
     private KeyData key = null; // Llave del nivel
     private boolean requiresKey = false; // Si el nivel requiere llave para ganar
     private boolean doorOpen = false; // Si la puerta está abierta
