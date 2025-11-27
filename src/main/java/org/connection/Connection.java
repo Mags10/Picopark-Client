@@ -114,10 +114,14 @@ public class Connection extends WebSocketClient {
         requiresKey = false;
         doorOpen = false;
         
-        // Resetear visibilidad de jugadores
+        // Resetear posiciones de jugadores localmente
+        int index = 0;
         for (PlayerData player : players.values()) {
+            player.x = 20 + index * 100;
+            player.y = 20;
             player.isVisible = true;
             player.hasKey = false;
+            index++;
         }
         
         JPanel panel  = navigationManager.getPanel("gamePanel");
