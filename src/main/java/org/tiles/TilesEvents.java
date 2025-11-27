@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class TilesEvents {
-    private final int maxTiles = 50;
+    private final int maxTiles = 51;
     private BufferedImage[] tiles = new BufferedImage[maxTiles];
 
     private final GamePanel gp;
@@ -42,12 +42,17 @@ public class TilesEvents {
             for(int i = 32; i <= 39; i++) {
                 this.tiles[i] = this.tiles[31];
             }
+            this.tiles[50] = ImageIO.read((Objects.requireNonNull(this.getClass().getResourceAsStream("/assets-tiles/llave.png"))));
         } catch(IOException e){
             e.printStackTrace();
         }
     }
 
     public void draw(Graphics2D g, int cameraX, int cameraY, int[][]codeMapsTiles){
+        draw(g, cameraX, cameraY, codeMapsTiles, false, false, false);
+    }
+
+    public void draw(Graphics2D g, int cameraX, int cameraY, int[][]codeMapsTiles, boolean requiresKey, boolean playerHasKey, boolean doorOpen){
         if (codeMapsTiles == null || codeMapsTiles.length == 0) return;
         
         int maxRen = codeMapsTiles.length;
@@ -62,8 +67,16 @@ public class TilesEvents {
 
             // NO renderizar tiles 31-39 (son plataformas dinámicas, no tiles estáticos)
             // tampoco 30 (destino invisible)
-            if(indexTile != 0 && indexTile != 30 && indexTile != 40 && 
+            if(indexTile != 0 && indexTile != 30 && indexTile != 40 &&
                !(indexTile >= 31 && indexTile <= 39)) {
+                
+                // Si es una puerta (12-14) y el nivel requiere llave pero la puerta no está abierta,
+                // mostrar puerta cerrada (8-11)
+                int actualTile = indexTile;
+                if (requiresKey && !doorOpen && indexTile >= 12 && indexTile <= 14) {
+                    actualTile = indexTile - 4; // 12->8, 13->9, 14->10
+                }
+                
                 worldX = col * gp.getSizeTile();
                 worldY = ren * gp.getSizeTile();
 
@@ -76,7 +89,7 @@ public class TilesEvents {
                     worldY + gp.getSizeTile() > cameraY &&
                     worldY - gp.getSizeTile() < cameraY + gp.getHeightScreen()
                 ) {
-                    g.drawImage(tiles[indexTile], screenX, screenY, gp.getSizeTile(),
+                    g.drawImage(tiles[actualTile], screenX, screenY, gp.getSizeTile(),
                             gp.getSizeTile(), null);
                 }
             }

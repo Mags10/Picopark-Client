@@ -13,10 +13,11 @@ public class Main extends JFrame {
     public Main() throws URISyntaxException {
         //URI serverUri = new URI("ws://8.tcp.us-cal-1.ngrok.io:15069");
         URI serverUri = new URI("ws://148.113.207.55/ws");
+        //URI serverUri = new URI("ws://localhost:8887");
         initJPanels();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
-        setSize(1280, 720);
+        setSize(640, 360);
         setLocationRelativeTo(null);
 
         connection = new Connection(serverUri, navigationManager);

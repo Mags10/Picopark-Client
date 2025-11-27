@@ -1,6 +1,7 @@
 package org.picopark;
 
 import org.connection.Connection;
+import org.connection.KeyData;
 import org.connection.PlayerData;
 
 import org.tiles.TilesEvents;
@@ -11,6 +12,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.Objects;
 
 public class GamePanel extends JPanel{
@@ -93,6 +95,7 @@ public class GamePanel extends JPanel{
             public void actionPerformed(ActionEvent e) {
                 if (!leftPressed[0]) {
                     GamePanel.this.connection.move("left");
+                    GamePanel.this.connection.predictMove("left");
                     leftPressed[0] = true;
                 }
             }
@@ -103,6 +106,7 @@ public class GamePanel extends JPanel{
             public void actionPerformed(ActionEvent e) {
                 leftPressed[0] = false;
                 GamePanel.this.connection.move("stop");
+                GamePanel.this.connection.predictMove("stop");
             }
         });
 
@@ -117,6 +121,7 @@ public class GamePanel extends JPanel{
             public void actionPerformed(ActionEvent e) {
                 if (!rightPressed[0]) {
                     GamePanel.this.connection.move("right");
+                    GamePanel.this.connection.predictMove("right");
                     rightPressed[0] = true;
                 }
             }
@@ -127,6 +132,7 @@ public class GamePanel extends JPanel{
             public void actionPerformed(ActionEvent e) {
                 rightPressed[0] = false;
                 GamePanel.this.connection.move("stop");
+                GamePanel.this.connection.predictMove("stop");
             }
         });
 
@@ -188,6 +194,12 @@ public class GamePanel extends JPanel{
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
+        
+        if(gameState == GameState.WINNER) {
+            drawWinOverlay(g2d);
+            return;
+        }
+        
         if(gameState == GameState.GAME_OVER){
             try{
                 BufferedImage image = ImageIO
@@ -202,6 +214,13 @@ public class GamePanel extends JPanel{
         }
 
         PlayerData player = this.connection.getCurrentPlayer();
+        if (player == null) {
+            // Si no hay jugador actual, mostrar overlays
+            drawOverlay(g2d);
+            if (gameState == GameState.MENU) drawMenuOverlay(g2d);
+            return;
+        }
+
         float cameraX = player.getWorldX() - (widthScreen /2 - (sizeTile /2));
         float cameraY = player.getWorldY() - (heightScreen /2 - (sizeTile /2));
 
@@ -211,7 +230,10 @@ public class GamePanel extends JPanel{
         if(cameraX > this.widthWorld - this.widthScreen) cameraX = this.widthWorld - this.widthScreen;
         if(cameraY > this.heightWorld - this.heightScreen) cameraY = this.heightWorld - this.heightScreen;
 
-        tilesEvents.draw(g2d, (int)cameraX, (int)cameraY, this.connection.getCurrentWorld());
+        tilesEvents.draw(g2d, (int)cameraX, (int)cameraY, this.connection.getCurrentWorld(),
+                         this.connection.requiresKey(),
+                         this.connection.getCurrentPlayer() != null && this.connection.getCurrentPlayer().hasKey,
+                         this.connection.isDoorOpen());
 
         // Dibujar plataformas móviles
         for (org.connection.PlatformData platform : this.connection.getPlatforms()) {
@@ -245,6 +267,51 @@ public class GamePanel extends JPanel{
                 // Sombra del texto para mejor legibilidad
                 g2d.setColor(new Color(0, 0, 0, 150));
                 g2d.drawString(counterText, textX + 1, textY + 1);
+            }
+        }
+
+        // Dibujar llave
+        KeyData key = this.connection.getKey();
+        if (key != null) {
+            float screenX = key.x - cameraX;
+            float screenY = key.y - cameraY;
+
+            // Hacer la llave mucho más grande (64x64 para que se vea bien)
+            int keySize = 64;
+
+            // Verificar si está en viewport
+            if (key.x + keySize > cameraX &&
+                key.x - keySize < cameraX + widthScreen &&
+                key.y + keySize > cameraY &&
+                key.y - keySize < cameraY + heightScreen) {
+
+                try {
+                    BufferedImage keySprite = ImageIO.read(Objects.requireNonNull(this.getClass().
+                            getResourceAsStream("/assets-tiles/llave.png")));
+                    
+                    // Aplicar offset flotante
+                    float drawY = screenY + key.floatOffset;
+                    
+                    // Animación de apertura de puerta (brillo)
+                    if (key.isOpeningDoor) {
+                        // Efecto de brillo pulsante
+                        long timeSinceOpen = System.currentTimeMillis() % 1000;
+                        float brightness = (float) Math.sin(timeSinceOpen * 0.00628) * 0.5f + 0.5f;
+                        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f + brightness * 0.7f));
+                    }
+                    
+                    g2d.drawImage(keySprite, (int)screenX, (int)drawY, keySize, keySize, null);
+                    
+                    // Resetear composite
+                    g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+                    
+                } catch (IOException e) {
+                    // Fallback: dibujar un rectángulo dorado más grande
+                    g2d.setColor(Color.YELLOW);
+                    g2d.fillRect((int)screenX, (int)screenY, keySize, keySize);
+                    g2d.setColor(Color.ORANGE);
+                    g2d.drawRect((int)screenX, (int)screenY, keySize, keySize);
+                }
             }
         }
 
